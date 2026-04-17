@@ -31,13 +31,12 @@ export function createApp(): Application {
   // Global error handler
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
-    console.error(err);
-
     if (err instanceof InvalidFileError) {
       res.status(400).json({ error: err.message });
       return;
     }
 
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   });
 
