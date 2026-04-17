@@ -1,6 +1,14 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
 
+interface ErrorResponse {
+  error: string;
+}
+
+interface FrameCountResponse {
+  frameCount: number;
+}
+
 const app = createApp();
 
 const FRAME_SIZE = 417;
@@ -18,7 +26,7 @@ describe('POST /file-upload', () => {
   it('returns 400 when no file is provided', async (): Promise<void> => {
     const res = await request(app).post('/file-upload');
     expect(res.status).toEqual(400);
-    expect(res.body).toHaveProperty('error');
+    expect(res.body as ErrorResponse).toHaveProperty('error');
   });
 
   it('returns 400 when file is not an MP3', async (): Promise<void> => {
@@ -29,7 +37,8 @@ describe('POST /file-upload', () => {
         contentType: 'text/plain',
       });
     expect(res.status).toEqual(400);
-    expect(res.body.error).toContain('Invalid file type');
+    const body = res.body as ErrorResponse;
+    expect(body.error).toContain('Invalid file type');
   });
 
   it('returns 200 with frameCount for a valid MP3', async (): Promise<void> => {
@@ -41,7 +50,8 @@ describe('POST /file-upload', () => {
         contentType: 'audio/mpeg',
       });
     expect(res.status).toEqual(200);
-    expect(res.body.frameCount).toEqual(5);
+    const body = res.body as FrameCountResponse;
+    expect(body.frameCount).toEqual(5);
   });
 
   it('returns correct frameCount for single frame MP3', async (): Promise<void> => {
@@ -53,7 +63,8 @@ describe('POST /file-upload', () => {
         contentType: 'audio/mpeg',
       });
     expect(res.status).toEqual(200);
-    expect(res.body.frameCount).toEqual(1);
+    const body = res.body as FrameCountResponse;
+    expect(body.frameCount).toEqual(1);
   });
 
   it('returns 200 with frameCount 0 for empty MP3 buffer', async (): Promise<void> => {
@@ -64,7 +75,8 @@ describe('POST /file-upload', () => {
         contentType: 'audio/mpeg',
       });
     expect(res.status).toEqual(200);
-    expect(res.body.frameCount).toEqual(0);
+    const body = res.body as FrameCountResponse;
+    expect(body.frameCount).toEqual(0);
   });
 
   it('response has correct Content-Type header', async (): Promise<void> => {
