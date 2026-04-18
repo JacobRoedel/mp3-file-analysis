@@ -9,6 +9,10 @@ interface FrameCountResponse {
   frameCount: number;
 }
 
+interface CorruptedResponse {
+  error: string;
+}
+
 const app = createApp();
 
 const FRAME_SIZE = 417;
@@ -67,16 +71,28 @@ describe('POST /file-upload', () => {
     expect(body.frameCount).toEqual(1);
   });
 
-  it('returns 200 with frameCount 0 for empty MP3 buffer', async (): Promise<void> => {
+  it('returns 422 for empty MP3 buffer', async (): Promise<void> => {
     const res = await request(app)
       .post('/file-upload')
       .attach('file', Buffer.alloc(0), {
         filename: 'empty.mp3',
         contentType: 'audio/mpeg',
       });
-    expect(res.status).toEqual(200);
-    const body = res.body as FrameCountResponse;
-    expect(body.frameCount).toEqual(0);
+    expect(res.status).toEqual(422);
+    const body = res.body as CorruptedResponse;
+    expect(body.error).toContain('No valid');
+  });
+
+  it('returns 422 for valid MP3 mimetype with no valid frames', async (): Promise<void> => {
+    const res = await request(app)
+      .post('/file-upload')
+      .attach('file', Buffer.alloc(100, 0x00), {
+        filename: 'noise.mp3',
+        contentType: 'audio/mpeg',
+      });
+    expect(res.status).toEqual(422);
+    const body = res.body as CorruptedResponse;
+    expect(body.error).toContain('No valid');
   });
 
   it('response has correct Content-Type header', async (): Promise<void> => {
