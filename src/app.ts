@@ -40,7 +40,7 @@ export function createApp(): Application {
 
   // Global error handler
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
+  app.use((err: Error | multer.MulterError, _req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof InvalidFileError) {
       res.status(400).json({ error: err.message });
       return;
@@ -48,6 +48,11 @@ export function createApp(): Application {
 
     if (err instanceof CorruptedFileError) {
       res.status(422).json({ error: err.message });
+      return;
+    }
+
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: 'File too large. Maximum file size is 50MB.' });
       return;
     }
 
