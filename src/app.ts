@@ -7,7 +7,10 @@ export function createApp(): Application {
   const app = express();
 
   // Configure multer to store uploaded files in memory as Buffer objects
-  const upload = multer({ storage: multer.memoryStorage() });
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+  });
 
   // POST /file-upload — accepts an MP3 file and returns its frame count
   app.post('/file-upload', upload.single('file'), (req: Request, res: Response): void => {
