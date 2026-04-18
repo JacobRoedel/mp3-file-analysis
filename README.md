@@ -80,6 +80,8 @@ curl -X POST http://localhost:3000/file-upload \
 
 **Error Responses**
 - `400 Bad Request` — no file provided or file is not an MP3
+- `413 Payload Too Large` — file exceeds 50MB limit
+- `422 Unprocessable Entity` — file contains no valid MPEG Version 1 Layer 3 frames
 - `500 Internal Server Error` — unexpected error during processing
 
 ## Technical approach
@@ -107,7 +109,7 @@ Each MP3 frame starts with a 4-byte header. The first 11 bits are the sync word 
 
 - **Mimetype validation** relies on the client-provided `Content-Type` header. A more robust implementation would inspect the file magic bytes to verify the file is actually an MP3 regardless of what mimetype the client sends.
 - **Free bitrate frames** (bitrate index 0) are skipped. A complete implementation would need a different parsing strategy for VBR files that use free bitrate encoding.
-- **Memory usage** — the entire file is loaded into memory as a Buffer. For very large files a streaming implementation would be more memory efficient, processing the file in chunks rather than loading it all at once.
+- **Memory usage** — the entire file is loaded into memory as a Buffer. A 50MB limit is enforced to prevent excessive memory consumption, but a streaming implementation would be more memory efficient for large files, processing them in chunks rather than loading all at once.
 - **Lookahead depth** — lookahead verification checks one frame ahead. Checking two or three consecutive frames would further reduce the already-negligible risk of false positives from random byte sequences that happen to pass header validation.
 - **Format support** — only MPEG Version 1 Layer 3 is supported as per the spec. MPEG Version 2 and 2.5, and Layers 1 and 2, are explicitly rejected.
 

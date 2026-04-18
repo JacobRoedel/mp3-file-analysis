@@ -7,7 +7,10 @@ export function createApp(): Application {
   const app = express();
 
   // Configure multer to store uploaded files in memory as Buffer objects
-  const upload = multer({ storage: multer.memoryStorage() });
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+  });
 
   // POST /file-upload — accepts an MP3 file and returns its frame count
   app.post('/file-upload', upload.single('file'), (req: Request, res: Response): void => {
@@ -37,7 +40,7 @@ export function createApp(): Application {
 
   // Global error handler
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
+  app.use((err: Error | multer.MulterError, _req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof InvalidFileError) {
       res.status(400).json({ error: err.message });
       return;
@@ -45,6 +48,11 @@ export function createApp(): Application {
 
     if (err instanceof CorruptedFileError) {
       res.status(422).json({ error: err.message });
+      return;
+    }
+
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: 'File too large. Maximum file size is 50MB.' });
       return;
     }
 
