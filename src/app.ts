@@ -1,7 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { countFrames } from './frameCounter';
-import { InvalidFileError } from './types';
+import { InvalidFileError, CorruptedFileError } from './types';
 
 export function createApp(): Application {
   const app = express();
@@ -20,6 +20,13 @@ export function createApp(): Application {
     }
 
     const frameCount = countFrames(req.file.buffer);
+
+    if (frameCount === 0) {
+      throw new CorruptedFileError(
+        'No valid MPEG Version 1 Layer 3 frames found. The file may be corrupted or an unsupported format.',
+      );
+    }
+
     res.json({ frameCount });
   });
 
@@ -33,6 +40,11 @@ export function createApp(): Application {
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
     if (err instanceof InvalidFileError) {
       res.status(400).json({ error: err.message });
+      return;
+    }
+
+    if (err instanceof CorruptedFileError) {
+      res.status(422).json({ error: err.message });
       return;
     }
 
