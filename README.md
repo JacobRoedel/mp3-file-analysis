@@ -131,3 +131,8 @@ tests/
   frameCounter.test.ts — unit tests for frame counter algorithm
   app.test.ts          — integration tests for the HTTP endpoint
 ```
+
+## Repository
+
+Full source code, commit history, and pull request history available at:
+https://github.com/JacobRoedel/mp3-file-analysis
