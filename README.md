@@ -66,7 +66,7 @@ Accepts an MP3 file upload and returns the frame count.
 
 ```
 curl -X POST http://localhost:3000/file-upload \
-  -F "file=@/path/to/your/file.mp3"
+  -F "file=@/path/to/your/file.mp3;type=audio/mpeg"
 ```
 
 **Success Response**
