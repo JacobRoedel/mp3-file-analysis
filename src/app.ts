@@ -1,10 +1,30 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { rateLimit } from 'express-rate-limit';
 import { countFrames } from './frameCounter';
 import { InvalidFileError, CorruptedFileError } from './types';
 
 export function createApp(): Application {
   const app = express();
+
+  // 100 requests per 15 minutes per IP across all routes
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: 100,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+    }),
+  );
+
+  // 10 uploads per 15 minutes per IP
+  const uploadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Too many uploads from this IP, please try again later.' },
+  });
 
   // Configure multer to store uploaded files in memory as Buffer objects
   const upload = multer({
@@ -13,7 +33,7 @@ export function createApp(): Application {
   });
 
   // POST /file-upload — accepts an MP3 file and returns its frame count
-  app.post('/file-upload', upload.single('file'), (req: Request, res: Response): void => {
+  app.post('/file-upload', uploadLimiter, upload.single('file'), (req: Request, res: Response): void => {
     if (req.file === undefined) {
       throw new InvalidFileError('No file provided');
     }
