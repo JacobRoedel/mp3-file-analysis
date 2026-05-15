@@ -1,31 +1,56 @@
-name: Build and Deploy to Cloud Run
+name: CI/CD
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: ${{ secrets.GCP_REGION }}           # e.g. us-central1
+  REGION: ${{ secrets.GCP_REGION }}
   SERVICE: mp3-file-analysis
   REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev
 
 jobs:
-  deploy:
-    name: Build, push, and deploy
+  test:
+    name: Lint and test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write   # required for Workload Identity Federation
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Keyless auth via Workload Identity Federation.
-      # One-time GCP setup instructions:
-      #   https://github.com/google-github-actions/auth#setup
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+  deploy:
+    name: Build, push, and deploy
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
