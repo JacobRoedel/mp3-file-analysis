@@ -53,6 +53,21 @@ npm run format
 
 ## API Reference
 
+### GET /health
+
+Returns the health status of the service.
+
+**Success Response**
+- Status: `200 OK`
+- Body:
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
 ### POST /file-upload
 
 Accepts an MP3 file upload and returns the frame count.
@@ -61,6 +76,12 @@ Accepts an MP3 file upload and returns the frame count.
 - Method: `POST`
 - Content-Type: `multipart/form-data`
 - Body: `file` field containing an MP3 file
+
+**Rate limits**
+- 10 uploads per IP per 15 minutes on this endpoint
+- 100 requests per IP per 15 minutes across all endpoints
+
+Exceeding either limit returns a `429 Too Many Requests` response with a `Retry-After` header.
 
 **Example using curl:**
 
@@ -82,6 +103,7 @@ curl -X POST http://localhost:3000/file-upload \
 - `400 Bad Request` — no file provided or file is not an MP3
 - `413 Payload Too Large` — file exceeds 50MB limit
 - `422 Unprocessable Entity` — file contains no valid MPEG Version 1 Layer 3 frames
+- `429 Too Many Requests` — rate limit exceeded
 - `500 Internal Server Error` — unexpected error during processing
 
 ## Technical approach
@@ -131,6 +153,31 @@ tests/
   frameCounter.test.ts — unit tests for frame counter algorithm
   app.test.ts          — integration tests for the HTTP endpoint
 ```
+
+## Deployment
+
+The API is hosted on Google Cloud Run and deployed automatically via GitHub Actions.
+
+### CI/CD pipeline
+
+Every pull request and push to `main` triggers the workflow defined in `.github/workflows/deploy.yml`:
+
+- **On a pull request** — a `test` job runs lint and the full test suite. The deploy job is skipped.
+- **On merge to main** — the `test` job runs first. If it passes, a `deploy` job builds a Docker image, pushes it to Artifact Registry, and deploys it to Cloud Run. If tests fail, the deploy is blocked and Cloud Run continues serving the last successful version.
+
+### Infrastructure
+
+- **Runtime** — Google Cloud Run (scales to zero when idle)
+- **Image registry** — Google Artifact Registry
+- **Authentication** — Workload Identity Federation (keyless, no stored credentials)
+- **Resource limits** — 256MB memory, max 3 instances
+
+### Dockerfile
+
+A multi-stage build is used to keep the runtime image lean:
+
+1. **Builder stage** — installs all dependencies and compiles TypeScript to `dist/`
+2. **Runner stage** — installs production dependencies only and copies the compiled output
 
 ## Repository
 
