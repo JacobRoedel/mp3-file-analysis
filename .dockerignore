@@ -1,0 +1,11 @@
+node_modules
+dist
+tests
+coverage
+.git
+.github
+*.md
+.eslintrc.json
+.prettierrc
+tsconfig.eslint.json
+jest.config.js

@@ -33,6 +33,11 @@ export function createApp(): Application {
     res.json({ frameCount });
   });
 
+  // Health check for Cloud Run
+  app.get('/health', (_req: Request, res: Response): void => {
+    res.json({ status: 'ok' });
+  });
+
   // 404 handler
   app.use((_req: Request, res: Response): void => {
     res.status(404).json({ error: 'Not found' });
